@@ -1,0 +1,25 @@
+workspace:
+  base: /go
+  path: src/github.com/coreos/prometheus-operator
+
+pipeline:
+  build_prometheu_operator:
+    image: registry.hub.docker.com/library/golang:1.11
+    commands:
+      - rm -f operator
+      - GOOS=linux CGO_ENABLED=0 go build -ldflags "-X github.com/coreos/prometheus-operator/pkg/version.Version=$(cat VERSION)" -o operator cmd/operator/main.go
+
+  test_prometheu_operator:
+    image: registry.hub.docker.com/library/golang:1.11
+    commands:
+      - go test -race -short $(go list ./... | grep -v /vendor/ | grep -v /test/ | grep -v /contrib/)
+
+  push_prometheu_operator:
+    image: plugins/docker
+    repo: registry.usw.co/coreos/prometheus-operator
+    tag: [ latest, "${DRONE_COMMIT_SHA}" ]
+    when:
+      branch:
+        - master
+      event:
+        - push
